@@ -51,15 +51,15 @@ The email arrives a few seconds later. Open [Logs](https://app.courier.com/logs)
 
 ```
 order.save()                       Django                              Courier
+     |   (status loaded with the row) |                                    |
      |                                |                                    |
-     |-- pre_save ------------------->| remember the stored status         |
      |-- post_save ------------------>| status changed?                    |
      |                                |   no  -> nothing                   |
      |                                |   yes -> wait for the commit       |
-     |-- COMMIT --------------------->| notify_order_status(order)         |
+     |-- COMMIT --------------------->| notify_order_status(order, key)    |
      |                                |-- POST /send ----------------------->|  route: email, then SMS
      |                                |   Idempotency-Key:                 |
-     |                                |   order-ORD-3F9A1C-shipped         |  deliver, log every attempt
+     |                                |   order-ORD-3F9A1C-shipped-<time>  |  deliver, log every attempt
      |                                |<-------------- requestId ------------|
 ```
 

@@ -24,7 +24,7 @@ def recipient_for(user) -> dict:
     return to
 
 
-def notify_order_status(order) -> str:
+def notify_order_status(order, idempotency_key: str) -> str:
     """Tell the customer their order's status changed. Returns Courier's request id."""
     status = order.get_status_display()
     response = courier().send.message(
@@ -42,9 +42,9 @@ def notify_order_status(order) -> str:
                 "total": float(order.total),
             },
         },
-        # One notification per order and status. A repeat with this key returns the
-        # first response instead of sending again.
-        idempotency_key=f"order-{order.number}-{order.status}",
+        # One key per status change. A repeat with this key returns the first
+        # response instead of sending again.
+        idempotency_key=idempotency_key,
     )
     logger.info("Sent %s update for order %s, request id %s", order.status, order.number, response.request_id)
     return response.request_id
