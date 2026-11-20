@@ -1,5 +1,7 @@
 {
   "$schema": "https://context7.com/schema/context7.json",
+  "url": "https://context7.com/trycourier/courier-django-quickstart",
+  "public_key": "pk_U3bU2CvznIef5RMDpii82",
   "projectTitle": "Courier + Django quickstart",
   "description": "A Django app that sends order status notifications by email, with SMS fallback, through Courier from a post_save signal.",
   "rules": [
