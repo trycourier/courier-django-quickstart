@@ -2,12 +2,27 @@
 
 A Django 6 app that emails a customer when their order's status changes, and sends an SMS instead when the email can't go out. A `post_save` signal calls `notify_order_status`, which makes one call to [Courier](https://www.courier.com) through the official Python SDK, [`trycourier`](https://pypi.org/project/trycourier/). Courier picks the channel, delivers, and logs every attempt.
 
-This is the companion project for [Add order notifications by email and SMS to a Django app](https://www.courier.com/docs/guides/add-notifications-to-django) in the Courier docs.
+This is the companion project for [Add order status notifications by email and SMS to a Django app](https://www.courier.com/docs/guides/add-notifications-to-django) in the Courier docs.
+
+## Build it with a coding agent
+
+Paste this into Claude Code, Cursor, or Codex from your own Django project:
+
+```text
+Add order status notifications by email and SMS to this Django app with Courier.
+Follow https://www.courier.com/docs/guides/add-notifications-to-django.md and the reference app at https://github.com/trycourier/courier-django-quickstart.
+Use the trycourier package (from courier import Courier) and read COURIER_API_KEY from the environment.
+Send from a post_save signal only when Order.status changes, after the transaction commits, with one idempotency key per status change.
+Route email first, then SMS, and keep our existing email and SMS providers.
+When done, run python manage.py send and show me the request id.
+```
+
+Install the Courier skill with `npx skills add trycourier/courier-skills`, and connect the [Courier MCP server](https://www.courier.com/docs/resources/mcp), so the agent can read Courier Logs and templates itself. `AGENTS.md` in this repo lists the rules it should keep.
 
 ## What it shows
 
-- **The send** in `orders/notifications.py`. It builds the recipient from the Django user, routes email first and SMS second, and sets an idempotency key per order and status.
-- **The trigger** in `orders/signals.py`. It sends only when the status actually changed, and only after the transaction commits.
+- **The send** in `orders/notifications.py`. It builds the recipient from the Django user, routes email first and SMS second, and sends with the idempotency key it's given.
+- **The trigger** in `orders/signals.py`. It sends only when the status actually changed, only after the transaction commits, and with one idempotency key per status change.
 - **A round trip** in `orders/management/commands/send.py`. `python manage.py send` ships one demo order and sends its update to you.
 
 Everything else is a stock Django project: an `Order` model, and a custom user model with a `phone_number` field.
@@ -51,7 +66,7 @@ The email arrives a few seconds later. Open [Logs](https://app.courier.com/logs)
 
 ```
 order.save()                       Django                              Courier
-     |   (status loaded with the row) |                                    |
+     |-- pre_save ------------------->| status unknown? read it once       |
      |                                |                                    |
      |-- post_save ------------------>| status changed?                    |
      |                                |   no  -> nothing                   |
@@ -63,7 +78,7 @@ order.save()                       Django                              Courier
      |                                |<-------------- requestId ------------|
 ```
 
-The idempotency key is the order number plus the status. If the same update is sent twice, by a retry or a race between two saves, Courier returns the first response instead of sending again.
+The model remembers the status it was loaded with, so a normal save runs no extra query. The idempotency key is the order number, the status, and the time of the change. Retries of one change reuse it, so Courier returns the first response instead of sending again, and a later change back to the same status gets a new key.
 
 ## Adapting it to your app
 
@@ -94,7 +109,7 @@ The idempotency key is the order number plus the status. If the same update is s
 
 **`AuthenticationError: Error code: 401`.** The key in `.env` is wrong, or it has a stray space. Copy it again.
 
-**Saving an order sends nothing.** That's on purpose when the status didn't change, or when the order was just created. A status that changed back to one already sent within 25 hours is also deduplicated by the idempotency key.
+**Saving an order sends nothing.** That's on purpose when the status didn't change, or when the order was just created.
 
 ## Further reading
 

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "Courier + Django quickstart",
+  "description": "A Django app that sends order status notifications by email, with SMS fallback, through Courier from a post_save signal.",
+  "rules": [
+    "Use the trycourier package from PyPI and import it as from courier import Courier.",
+    "Read COURIER_API_KEY from the environment and keep it server-side.",
+    "Pass an idempotency key per status change to client.send.message, and reuse it on retries.",
+    "Send from transaction.on_commit only when Order.status actually changed.",
+    "Route email first, then SMS, with routing {\"method\": \"single\", \"channels\": [\"email\", \"sms\"]}."
+  ]
+}
