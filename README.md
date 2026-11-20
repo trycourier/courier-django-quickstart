@@ -1,6 +1,6 @@
 # Order notifications for Django, with Courier
 
-A Django 6 app that emails a customer when their order's status changes, and sends an SMS instead when the email can't go out. A `post_save` signal calls `notify_order_status`, which makes one call to [Courier](https://www.courier.com) through the official Python SDK, [`trycourier`](https://pypi.org/project/trycourier/). Courier picks the channel, applies the customer's preferences, and logs every attempt.
+A Django 6 app that emails a customer when their order's status changes, and sends an SMS instead when the email can't go out. A `post_save` signal calls `notify_order_status`, which makes one call to [Courier](https://www.courier.com) through the official Python SDK, [`trycourier`](https://pypi.org/project/trycourier/). Courier picks the channel, delivers, and logs every attempt.
 
 This is the companion project for [Add order notifications by email and SMS to a Django app](https://www.courier.com/docs/guides/add-notifications-to-django) in the Courier docs.
 
@@ -58,7 +58,7 @@ order.save()                       Django                              Courier
      |                                |   yes -> wait for the commit       |
      |-- COMMIT --------------------->| notify_order_status(order)         |
      |                                |-- POST /send ----------------------->|  route: email, then SMS
-     |                                |   Idempotency-Key:                 |  apply preferences
+     |                                |   Idempotency-Key:                 |
      |                                |   order-ORD-3F9A1C-shipped         |  deliver, log every attempt
      |                                |<-------------- requestId ------------|
 ```
@@ -72,6 +72,8 @@ The idempotency key is the order number plus the status. If the same update is s
 **Keep the `user_id` stable.** The repo maps a Django user to `user_<pk>`. Use the same id everywhere you call Courier, so preferences and logs follow one person.
 
 **Use a template.** The send uses inline `content`, so it runs against a fresh workspace. In production, design the message in Courier, pass `"template": "<your template id>"` instead of `content`, and keep the `data` block as it is.
+
+**Let customers opt out.** This send names no subscription topic, so preferences don't apply to it yet. Map your template to a subscription topic and Courier applies each customer's [preferences](https://www.courier.com/docs/recipients/preferences/overview) to every send.
 
 **Send from a worker.** The send happens after the commit, in the same process. The guide has a short Celery version for sending off the request path.
 
