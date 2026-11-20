@@ -31,7 +31,7 @@ def notify_on_status_change(sender, instance, created, raw, **kwargs):
 
     # One key per status change. Retries of this send reuse it, and a later
     # change back to the same status gets a new one.
-    key = f"order-{instance.number}-{status}-{timezone.now():%Y%m%d%H%M%S}"
+    key = f"order-{instance.number}-{status}-{timezone.now():%Y%m%d%H%M%S%f}"
 
     def send():
         remember()
